@@ -1,7 +1,8 @@
-action = {
+actions_table = {
   back: :todo,
   delete: :todo,
   area: [:todo, :todo],
+  enter: nil,
   exit: "cVs<esc>",
 
   left: ["k", "ck"],
@@ -14,7 +15,7 @@ action = {
   primary: ["i", ":<space>lsp-code-action<enter>"],
   secondary: "s",
   tertiary: ["cv", "V"],
-  primary_alt: ["", ":<space>lsp-rename<enter>"],
+  primary_alt: [:todo, ":<space>lsp-rename<enter>"],
   secondary_alt: ["cD", "cd"],
   tertiary_alt: ["cs", "cS"],
 
@@ -53,6 +54,8 @@ action = {
 
   focus: [
     {
+      "a" => "cVgkghcvgjgl",
+      "A" => "cVgkghcvgjgl",
       "w" => "aw",
       '"' => 'a"',
       "'" => "a'",
@@ -64,10 +67,12 @@ action = {
       "]" => "a]",
       "{" => "a{",
       "}" => "a}",
-      "<lt>" => "a<",
-      "<gt>" => "a>"
+      "lt" => "a<lt>",
+      "gt" => "a<gt>"
     },
     {
+      "a" => "cVgkghcvgjgl",
+      "A" => "cVgkghcvgjgl",
       "w" => "Aw",
       '"' => 'A"',
       "'" => "A'",
@@ -79,8 +84,8 @@ action = {
       "]" => "A]",
       "{" => "A{",
       "}" => "A}",
-      "<lt>" => "A<",
-      "<gt>" => "A>"
+      "lt" => "A<lt>",
+      "gt" => "A<gt>"
     }
   ],
   self: ["cc", "cC"],
@@ -99,7 +104,7 @@ action = {
   ],
 
   advance: {
-    ACTION: "zz:<space>lsp-hover<enter>",
+    # TODO: "zz:<space>lsp-hover<enter>",
 
     advance: :todo,
     area: "go",
@@ -126,11 +131,12 @@ action = {
 
 
 qwerty = {
-  advance: "<space>",
-  back: "<backspace>",
-  delete: "<delete>",
-  area: "<tab>",
-  exit: "<esc>",
+  advance: "space",
+  back: "backspace",
+  delete: "delete",
+  area: "tab",
+  enter: "enter",
+  exit: "esc",
 
   left: "i",
   right: "k",
@@ -166,7 +172,7 @@ qwerty = {
   align_center: ["\\", "|"],
 
   command: [";", ":"],
-  assign: ["'", '"'],
+  assign: ["'", '\"'],
 
   key0: ["0", "!"],
   key1: ["1", "@"],
@@ -187,3 +193,53 @@ qwerty = {
   local: "y",
   movement: "m"
 }
+
+
+qwerty.map do |meaning, keys|
+  [
+    meaning,
+    unless keys.is_a? Array
+      if keys.match? /\A[[:alpha:]]\z/
+        [keys, keys.upcase]
+      else
+        [keys, "s-" + keys]
+      end
+    else
+      keys
+    end
+  ]
+end
+.to_h => layout
+
+
+actions_table.map do |keys, actions|
+  [
+    layout[keys],
+    ([actions] + [nil, nil]).flatten.first(2)
+  ]
+  .transpose
+end
+.flatten(1)
+.map do |key, action|
+  next [key, action] unless action.is_a? Hash
+
+  action.map do |keys, actions|
+    [
+      Array(keys.is_a?(Symbol) ? layout[keys] : keys).map { key + "><" + _1 }.first(Array(actions).size),
+      Array(actions)
+    ]
+    .transpose
+  end
+end
+.map { _1[0].is_a?(Array) ? _1 : [[_1]] }.flatten(2)
+.map do |key, action|
+  action = ":<space>print<enter>" if [:assign, :todo, nil].include? action
+
+  [
+    %(map normal "<#{key}>" "#{action}"),
+    %(map normal "<a-#{key}>" "#{action}"),
+    %(map insert "<a-#{key}>" "<esc>#{action}i")
+  ]
+  .join("\n")
+end
+.join("\n").then { puts _1 }
